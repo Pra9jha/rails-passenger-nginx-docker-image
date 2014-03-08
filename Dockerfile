@@ -1,6 +1,7 @@
 #################################################################
 # This docker image build file creates an image that contains
-# nginx, passenger, rvm with ruby on rails.
+# nginx, passenger, rvm with ruby on rails. It is intended for you
+# to use as a base for your project. Or as a template for your dockerfile.
 #
 #                    ##        .
 #              ## ## ##       ==
@@ -12,11 +13,16 @@
 #          \____\______/
 #
 # Component:    docker-base
-# Author:       Alex Oberhauser <alex.oberhauser@networld.to>
-# Copyright:    (c) 2013-2014 Sigimera Ltd. All rights reserved.
+# Author:       peenuty <peenuty@gmail.com>
 #################################################################
-FROM ubuntu:latest
-MAINTAINER Alex Oberhauser <alex.oberhauser@networld.to>
+
+#####
+# Building: sudo docker build -t peenuty/rails-passenger-nginx .
+
+# Open it up: sudo docker run -t -i -p 80:80 bash -l
+
+FROM ubuntu:12.04
+MAINTAINER Richard Gill <richard@rgill.co.uk>
 
 # reduce output from debconf
 ENV DEBIAN_FRONTEND noninteractive
@@ -28,28 +34,43 @@ RUN apt-get update
 RUN apt-get -y upgrade
 RUN apt-get -y install curl libcurl4-gnutls-dev git libxslt-dev libxml2-dev libpq-dev libffi-dev imagemagick
 
-# Install rvm
+# Install rvm, ruby, rails, rubygems, passenger, nginx
+ENV RUBY_VERSION 2.1.0
+ENV RAILS_VERSION 4.0.0
+ENV PASSENGER_VERSION 4.0.37
+
+# All rvm commands need to be run as bash -l or they won't work.
+
 RUN \curl -sSL https://get.rvm.io | bash -s stable --rails
 RUN echo 'source /usr/local/rvm/scripts/rvm' >> /etc/bash.bashrc
 RUN /bin/bash -l -c 'rvm requirements'
-RUN /bin/bash -l -c 'rvm install 2.1.0 && rvm use 2.1.0 --default'
+RUN /bin/bash -l -c 'rvm install $RUBY_VERSION && rvm use $RUBY_VERSION --default'
 RUN /bin/bash -l -c 'rvm rubygems current'
 
-RUN /bin/bash -l -c 'gem install passenger --version 4.0.29'
+RUN /bin/bash -l -c 'gem install passenger --version $PASSENGER_VERSION'
 RUN /bin/bash -l -c 'passenger-install-nginx-module --auto-download --auto --prefix=/opt/nginx'
 
 RUN /bin/bash -l -c 'gem install bundler'
+RUN /bin/bash -l -c 'gem install rails --version=$RAILS_VERSION'
 
-# Configure nginx
-RUN mkdir -p /var/log/nginx
-RUN echo "daemon off;" >> /opt/nginx/conf/nginx.conf
-ADD nginx.conf /opt/nginx/conf/nginx.conf
-ADD 50x.html /var/www/50x.html
+#You need a javascript runtime to run rails
+RUN apt-get -y install nodejs
 
-RUN apt-get -y autoclean
+RUN mkdir -p /var/log/nginx/
 
-RUN /bin/bash -l -c 'usermod -s /bin/bash nobody'
 
-EXPOSE 80
-ENTRYPOINT ["/opt/nginx/sbin/nginx", "-c", "/opt/nginx/conf/nginx.conf"]
+# Just to make things safer. 
+ENV RAILS_ENV development
 
+# You'll need to override the default nginx.conf with you're own. 
+# I've provided a sample in the github project.
+#ADD local/path/to/nginx.conf /opt/nginx/conf/nginx.conf
+
+# You'll obviously want to expose some ports.
+#EXPOSE 22
+
+#EXPOSE 80
+
+#EXPOSE 443
+
+CMD bash -l
