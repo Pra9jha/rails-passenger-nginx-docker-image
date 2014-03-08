@@ -73,4 +73,3 @@ ENV RAILS_ENV development
 
 #EXPOSE 443
 
-CMD bash -l
