@@ -1,4 +1,5 @@
 rails-passenger-nginx
+---------------------
 
 This is a docker image / file you can base your rails project from. It's not really intended to be used directly or without modification.
 
